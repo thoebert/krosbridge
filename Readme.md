@@ -1,6 +1,6 @@
 # krosbridge
 
-A Kotlin ROS Client for rosbridge to publish/subscribe/call services with an automatic code generator for the required message/service data classes. 
+A Kotlin ROS Client for rosbridge to publish/subscribe/call services with an [automatic code generator](https://github.com/thoebert/krosbridge-codegen) for the required message/service data classes. 
 
 ## Features
 
@@ -56,7 +56,7 @@ topic.subscribe("subscriptionID") { msg, _ ->
 
 ### Call/Advertise a Service
 
-Put the following Service definition `AddTwoInts.srv` in `src/main/ros/myrosproject/srv`. Make sure your custom service type is registered to your ROS-Core/ROS-Bridge project `myrosproject`. [See here how.](http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv)
+Put the following service definition `AddTwoInts.srv` in `src/main/ros/myrosproject/srv`. Make sure your custom service type is registered to your ROS-Core/ROS-Bridge project `myrosproject`. [See here how.](http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv)
 
 #### AddTwoInts.srv:
 ```
@@ -90,9 +90,10 @@ The following instructions will setup your project with krosbridge.
 ### Gradle
 
 Add the following lines to your `build.gradle.kts` to 
-1) add the code-gen gradle plugin and the gradle kotlin serialization plugin
-2) add the required and optional dependencies
-3) configure the code-generation package
+1) add the [code-gen gradle plugin](https://github.com/thoebert/krosbridge-codegen) and the gradle kotlin serialization plugin
+2) add jitpack to your dependencies repository
+3) add the required and optional dependencies
+4) configure the code-generation package
 
 
 ```kotlin
@@ -100,14 +101,18 @@ import com.github.thoebert.krosbridgecodegen.KROSBridgeCodegenPluginConfig
 
 plugins {
     kotlin("plugin.serialization") version "1.7.21"
-    id("com.github.thoebert.krosbridge-codegen") version "1.0-SNAPSHOT"
+    id("io.github.thoebert.krosbridge-codegen") version "1.0"
 }
 
 ...
 
+repositories {
+    maven("https://jitpack.io")
+}
+
 dependencies {
     // Required
-    implementation("com.github.thoebert:krosbridge:1.0-SNAPSHOT")
+    implementation("com.github.thoebert:krosbridge:1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
     implementation("io.ktor:ktor-client-okhttp:2.2.4")
     
@@ -157,4 +162,4 @@ This project is originally based on [jrosbridge](https://github.com/rctoris/jros
 
 ## License
 
-This project is licensed under the BSD - see the [License.md](License.md) file for details.
+This project is licensed under the BSD - see the [License](License) file for details.
