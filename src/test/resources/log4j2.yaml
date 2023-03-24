@@ -1,0 +1,35 @@
+Configuration:
+  name: LoggingConfig
+  properties:
+    property:
+      - name: consolepattern
+        value: "%d{HH:mm:ss} %-5level %14.14logger{1} %m%n"
+  appenders:
+    Console:
+      - name: STDOUT
+        target: SYSTEM_OUT
+        PatternLayout:
+          Pattern: ${consolepattern}
+        Filters:
+          LevelRangeFilter:
+            maxLevel: DEBUG
+            minLevel: INFO
+      - name: STDERR
+        target: SYSTEM_ERR
+        PatternLayout:
+          Pattern: ${consolepattern}
+        Filters:
+          LevelRangeFilter:
+            maxLevel: WARN
+            minLevel: ERROR
+  Loggers:
+    Root:
+      level: info
+      appenderRef:
+        - ref: STDERR
+        - ref: STDOUT
+    logger:
+      - name: org.glassfish.tyrus.server
+        level: info
+      - name: com.github.thoebert.krosbridge
+        level: debug
