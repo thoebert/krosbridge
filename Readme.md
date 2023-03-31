@@ -101,18 +101,19 @@ import com.github.thoebert.krosbridgecodegen.KROSBridgeCodegenPluginConfig
 
 plugins {
     kotlin("plugin.serialization") version "1.7.21"
-    id("io.github.thoebert.krosbridge-codegen") version "1.0.1"
+    id("io.github.thoebert.krosbridge-codegen") version "1.0.2"
 }
 
 ...
 
 repositories {
+    mavenCentral()
     maven("https://jitpack.io")
 }
 
 dependencies {
     // Required
-    implementation("com.github.thoebert:krosbridge:1.0")
+    implementation("com.github.thoebert:krosbridge:main-SNAPSHOT")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
     implementation("io.ktor:ktor-client-okhttp:2.2.4")
     
