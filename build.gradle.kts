@@ -4,7 +4,8 @@ import com.github.thoebert.krosbridgecodegen.KROSBridgeCodegenPluginConfig
 plugins {
     kotlin("jvm") version "1.7.21"
     kotlin("plugin.serialization") version "1.7.21"
-    id("io.github.thoebert.krosbridge-codegen") version "1.0.1"
+    id("io.github.thoebert.krosbridge-codegen") version "1.0.2"
+    `maven-publish`
 }
 
 group = "com.github.thoebert"
@@ -48,4 +49,15 @@ configure<KROSBridgeCodegenPluginConfig> {
 
 tasks.jar {
     dependsOn("generateROSSources")
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = group.toString()
+            artifactId = project.name
+            version = version
+            from(components["java"])
+        }
+    }
 }
