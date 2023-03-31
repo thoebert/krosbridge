@@ -101,7 +101,7 @@ import com.github.thoebert.krosbridgecodegen.KROSBridgeCodegenPluginConfig
 
 plugins {
     kotlin("plugin.serialization") version "1.7.21"
-    id("io.github.thoebert.krosbridge-codegen") version "1.0"
+    id("io.github.thoebert.krosbridge-codegen") version "1.0.1"
 }
 
 ...
