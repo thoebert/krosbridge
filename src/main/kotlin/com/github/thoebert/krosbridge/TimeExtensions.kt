@@ -4,7 +4,7 @@ import com.github.thoebert.krosbridge.messages.std_msgs.primitive.Duration
 import java.time.Instant
 
 fun Time.toInstant() : Instant {
-    return Instant.ofEpochSecond(this.sec.toLong(), this.nsec.toLong())
+    return Instant.ofEpochSecond(this.secs.toLong(), this.nsecs.toLong())
 }
 
 fun Time.Companion.fromInstant(instant : Instant) : Time {
@@ -16,7 +16,7 @@ fun Time.Companion.now() : Time {
 }
 
 fun Duration.toDuration() : java.time.Duration {
-    return java.time.Duration.ofSeconds(this.sec.toLong(), this.nsec.toLong())
+    return java.time.Duration.ofSeconds(this.secs.toLong(), this.nsecs.toLong())
 }
 
 fun Duration.Companion.fromDuration(duration : java.time.Duration) : Duration {
