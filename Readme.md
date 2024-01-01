@@ -25,7 +25,7 @@ ros.connect()
 
 ### Publish/Subscribe to a Message Topic
 
-Put the following Message `Num.msg` in `src/main/ros/myrosproject/msg`. 
+Put the following Message `Num.msg` in `src/main/ros/myrospackage/msg`. 
 Make sure your custom message type is registered to your ROS-Core/ROS-Bridge project `myrosproject`. [See here how.](http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv)
 
 #### Num.msg:
@@ -56,7 +56,7 @@ topic.subscribe("subscriptionID") { msg, _ ->
 
 ### Call/Advertise a Service
 
-Put the following service definition `AddTwoInts.srv` in `src/main/ros/myrosproject/srv`. Make sure your custom service type is registered to your ROS-Core/ROS-Bridge project `myrosproject`. [See here how.](http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv)
+Put the following service definition `AddTwoInts.srv` in `src/main/ros/myrospackage/srv`. Make sure your custom service type is registered to your ROS-Core/ROS-Bridge project `myrosproject`. [See here how.](http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv)
 
 #### AddTwoInts.srv:
 ```
@@ -94,24 +94,24 @@ Add the following lines to your `build.gradle.kts` to
 2) add jitpack to your dependencies repository
 3) add the required and optional dependencies
 4) configure the code-generation package
-
+5) for android project: add source set for generated sources
 
 ```kotlin
 import com.github.thoebert.krosbridgecodegen.KROSBridgeCodegenPluginConfig
 
 plugins {
-    kotlin("plugin.serialization") version "1.7.21"
-    id("io.github.thoebert.krosbridge-codegen") version "1.0.2"
+    kotlin("plugin.serialization") version "1.7.21" // 1)
+    id("io.github.thoebert.krosbridge-codegen") version "1.0.5"
 }
 
 ...
 
 repositories {
     mavenCentral()
-    maven("https://jitpack.io")
+    maven("https://jitpack.io") // 2) add line here or for android: add in settings.gradle.kts to dependencyResolutionManagement.repositories
 }
 
-dependencies {
+dependencies { // 3)
     // Required
     implementation("com.github.thoebert:krosbridge:main-SNAPSHOT")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
@@ -125,14 +125,23 @@ dependencies {
 
 ...
 
-configure<KROSBridgeCodegenPluginConfig> {
+configure<KROSBridgeCodegenPluginConfig> { // 4)
     packageName.set("com.company.project.messages") // package for generated data classes
+}
+
+...
+
+// only on android
+android.sourceSets {
+    named("main") {
+        java.srcDirs(File(buildDir, "generated/source/ros"))
+    }
 }
 ```
 
 ### Build
 
-Run the `generateROSSources` gradle task to generate all messages/services in the folder `/build/generated/source/ros/com/company/project/messages/` 
+Run the `generateROSSources` gradle task to generate all messages/services in the folder `/build/generated/source/ros/com/company/project/messages/myrospackage/` 
 ```shell
 ./gradlew generateROSSources
 ```
@@ -140,9 +149,9 @@ Run the `generateROSSources` gradle task to generate all messages/services in th
 Import them using:
 
 ```kotlin
-import com.company.project.messages.myrosproject.Num
-import com.company.project.messages.myrosproject.NumTopic
-import com.company.project.messages.myrosproject.AddTwoInts
+import com.company.project.messages.myrospackage.Num
+import com.company.project.messages.myrospackage.NumTopic
+import com.company.project.messages.myrospackage.AddTwoInts
 ```
 
 ### Debugging

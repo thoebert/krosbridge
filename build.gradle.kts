@@ -4,7 +4,7 @@ import com.github.thoebert.krosbridgecodegen.KROSBridgeCodegenPluginConfig
 plugins {
     kotlin("jvm") version "1.7.21"
     kotlin("plugin.serialization") version "1.7.21"
-    id("io.github.thoebert.krosbridge-codegen") version "1.0.2"
+    id("io.github.thoebert.krosbridge-codegen") version "1.0.5"
     `maven-publish`
 }
 
