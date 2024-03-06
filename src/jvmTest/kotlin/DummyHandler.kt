@@ -1,5 +1,3 @@
-package com.github.thoebert.krosbridge
-
 import jakarta.json.Json
 import jakarta.json.JsonObject
 import java.io.StringReader

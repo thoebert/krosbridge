@@ -1,11 +1,10 @@
-package com.github.thoebert.krosbridge
-
+import com.github.thoebert.krosbridge.Message
+import com.github.thoebert.krosbridge.Ros
+import com.github.thoebert.krosbridge.Topic
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import kotlin.test.*
+
 
 @Serializable
 data class MyType1(val test1 : String) : Message()
@@ -18,7 +17,7 @@ class TestTopic {
     private lateinit var t3: Topic
     private lateinit var t4: Topic
     private lateinit var t5: Topic
-    @BeforeEach
+    @BeforeTest
     fun setUp() = runBlocking {
         ros = Ros()
         server = DummyServer(ros.port)
@@ -41,7 +40,7 @@ class TestTopic {
         t5 = Topic(ros, "myTopic", "myType1", MyType1::class)
     }
 
-    @AfterEach
+    @AfterTest
     fun tearDown() = runBlocking {
         ros.disconnect()
         server.stop()

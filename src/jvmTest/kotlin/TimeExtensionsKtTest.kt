@@ -1,11 +1,12 @@
-package com.github.thoebert.krosbridge
-
-import com.github.thoebert.krosbridge.messages.std_msgs.primitive.Duration
-import com.github.thoebert.krosbridge.messages.std_msgs.primitive.Time
-import org.junit.jupiter.api.Test
-
-import org.junit.jupiter.api.Assertions.*
+import com.github.thoebert.krosbridge.fromDuration
+import com.github.thoebert.krosbridge.fromInstant
+import com.github.thoebert.krosbridge.messages.primitive.Duration
+import com.github.thoebert.krosbridge.messages.primitive.Time
+import com.github.thoebert.krosbridge.toDuration
+import com.github.thoebert.krosbridge.toInstant
 import java.time.Instant
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class TimeExtensionsKtTest {
 
@@ -19,8 +20,8 @@ class TimeExtensionsKtTest {
     @Test
     fun testFromInstant() {
         val t = Time.fromInstant(Instant.ofEpochSecond(10,20))
-        assertEquals(10, t.sec)
-        assertEquals(20, t.nsec)
+        assertEquals(10, t.secs)
+        assertEquals(20, t.nsecs)
     }
 
     @Test
@@ -33,7 +34,7 @@ class TimeExtensionsKtTest {
     @Test
     fun testFromDuration() {
         val t = Duration.fromDuration(java.time.Duration.ofSeconds(10,20))
-        assertEquals(10, t.sec)
-        assertEquals(20, t.nsec)
+        assertEquals(10, t.secs)
+        assertEquals(20, t.nsecs)
     }
 }

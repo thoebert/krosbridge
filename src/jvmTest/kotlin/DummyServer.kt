@@ -1,7 +1,4 @@
-package com.github.thoebert.krosbridge
-
 import org.glassfish.tyrus.server.Server
-import java.net.http.WebSocket
 
 class DummyServer(port: Int) {
     private val s: Server

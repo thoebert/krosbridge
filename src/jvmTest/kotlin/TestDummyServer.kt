@@ -1,8 +1,5 @@
-package com.github.thoebert.krosbridge
-
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
+import kotlin.test.assertTrue
 
 class TestDummyServer {
     @Test

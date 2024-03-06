@@ -1,5 +1,3 @@
-package com.github.thoebert.krosbridge
-
 /**
  * The JRosbridge class contains constant definitions used in the rosbridge
  * protocol itself (e.g., op code types).

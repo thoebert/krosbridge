@@ -1,13 +1,14 @@
-package com.github.thoebert.krosbridge
-
+import com.github.thoebert.krosbridge.Ros
+import com.github.thoebert.krosbridge.Service
+import com.github.thoebert.krosbridge.ServiceRequest
+import com.github.thoebert.krosbridge.ServiceResponse
 import jakarta.json.Json
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junit.Assert.assertEquals
+
 import java.util.*
+import kotlin.test.*
 
 @Serializable
 data class MyTypeRequest(val test1 : String) : ServiceRequest()
@@ -20,7 +21,7 @@ class TestService {
     private var ros: Ros? = null
     private var server: DummyServer? = null
     private var s1: Service? = null
-    @BeforeEach
+    @BeforeTest
     fun setUp() = runBlocking {
         ros = Ros()
         server = DummyServer(ros!!.port)
@@ -29,7 +30,7 @@ class TestService {
         s1 = Service(ros!!, "myService", "myType", MyTypeRequest::class, MyTypeResponse::class)
     }
 
-    @AfterEach
+    @AfterTest
     fun tearDown() = runBlocking {
         ros!!.disconnect()
         server!!.stop()
@@ -52,7 +53,8 @@ class TestService {
         while (DummyHandler.latest == null) Thread.yield()
         assertNotNull(DummyHandler.latest)
         assertEquals(5, DummyHandler.latest!!.size)
-        assertEquals(JRosbridge.OP_CODE_CALL_SERVICE,
+        assertEquals(
+            JRosbridge.OP_CODE_CALL_SERVICE,
             DummyHandler.latest!!.getString(JRosbridge.FIELD_OP)
         )
         assertEquals("call_service:myService:0",
@@ -70,11 +72,12 @@ class TestService {
         )
         val toSend =
                 Json.createObjectBuilder()
-                    .add(JRosbridge.FIELD_OP,JRosbridge.OP_CODE_SERVICE_RESPONSE)
+                    .add(JRosbridge.FIELD_OP, JRosbridge.OP_CODE_SERVICE_RESPONSE)
                     .add(JRosbridge.FIELD_SERVICE,"myService")
                     .add(JRosbridge.FIELD_ID,"call_service:myService:0")
                     .add(JRosbridge.FIELD_RESULT, false)
-                    .add(JRosbridge.FIELD_VALUES,
+                    .add(
+                        JRosbridge.FIELD_VALUES,
                         Json.createObjectBuilder().add("test3", "test4").build()
                     )
                     .build().toString()
@@ -123,7 +126,7 @@ class TestService {
 
     @Test
     fun testSendResponse() {
-        val resp = MyTypeResponse ("test4")
+        val resp = MyTypeResponse("test4")
         s1!!.sendResponseGeneric(resp, true, "myServiceId")
         while (DummyHandler.latest == null) Thread.yield()
         assertNotNull(DummyHandler.latest)
@@ -209,7 +212,8 @@ class TestService {
                         .add(JRosbridge.FIELD_ID, "call_service:myService:0")
                         .add(JRosbridge.FIELD_SERVICE, "myService")
                         .add(JRosbridge.FIELD_RESULT, false)
-                        .add(JRosbridge.FIELD_VALUES, Json.createObjectBuilder()
+                        .add(
+                            JRosbridge.FIELD_VALUES, Json.createObjectBuilder()
                                 .add("test3", "test4")
                                 .build()
                         ).build()
