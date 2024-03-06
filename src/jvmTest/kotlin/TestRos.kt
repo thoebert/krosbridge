@@ -1,10 +1,9 @@
-package com.github.thoebert.krosbridge
-
+import com.github.thoebert.krosbridge.Ros
 import io.ktor.util.reflect.*
 import jakarta.json.Json
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.*
+import kotlin.test.*
+
 
 class TestRos {
     private var r1: Ros? = null
@@ -12,7 +11,7 @@ class TestRos {
     private var r3: Ros? = null
     private var r4: Ros? = null
     private var server: DummyServer? = null
-    @BeforeEach
+    @BeforeTest
     @Throws(InterruptedException::class)
     fun setUp() {
         r1 = Ros()
@@ -27,7 +26,7 @@ class TestRos {
         server!!.start()
     }
 
-    @AfterEach
+    @AfterTest
     fun tearDown() = runBlocking {
         r1!!.disconnect()
         r2!!.disconnect()
@@ -98,7 +97,7 @@ class TestRos {
     }
 
     @Test
-    fun testConnectFailed() = runBlocking {
+    fun testConnectFailed(): Unit = runBlocking {
         runCatching {
             assertFalse(r3!!.connect())
             assertFalse(r3!!.isConnected)

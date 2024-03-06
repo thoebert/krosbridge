@@ -1,5 +1,3 @@
-package com.github.thoebert.krosbridge
-
 import org.slf4j.bridge.SLF4JBridgeHandler
 
 fun setupLogging(){
