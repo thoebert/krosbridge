@@ -1,8 +1,6 @@
 package com.github.thoebert.krosbridge
 
 import com.github.thoebert.krosbridge.rosmessages.*
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 import kotlin.reflect.KClass
 
 typealias ServiceRequestSubscriber = (ServiceRequest?, String?) -> Unit
@@ -50,7 +48,7 @@ open class Service(
      * @param cb
      * The callback used when the associated response comes back.
      */
-    fun callService(request: ServiceRequest, callback: ServiceResponseSubscriber) {
+    suspend fun callService(request: ServiceRequest, callback: ServiceResponseSubscriber) {
         val callServceId = ("call_service:" + name + ":" + ros.nextId()) // construct the unique ID
         responseSubscribers[callServceId] = callback
         ros.registerService(this)
@@ -67,7 +65,7 @@ open class Service(
     /**
      * Registers as service advertiser.
      */
-    fun advertiseServiceGeneric(callback: ServiceRequestSubscriber?) {
+    suspend fun advertiseServiceGeneric(callback: ServiceRequestSubscriber?) {
         requestSubscriber = callback
         ros.registerService(this) // register the callback
         ros.send(AdvertiseService(name, type)) // build and send the rosbridge call
@@ -76,7 +74,7 @@ open class Service(
     /**
      * Unregisters as service advertiser.
      */
-    fun unadvertiseService() {
+    suspend fun unadvertiseService() {
         ros.deregisterService(this)
         ros.send(UnadvertiseService(name)) // build and send the rosbridge call
         requestSubscriber = null
@@ -95,7 +93,7 @@ open class Service(
      * @param id
      * The ID of the response (matching that of the service call).
      */
-    fun sendResponseGeneric(response: ServiceResponse?, result : Boolean = true, id: String? = null) {
+    suspend fun sendResponseGeneric(response: ServiceResponse?, result : Boolean = true, id: String? = null) {
         ros.send(ResponseService(name, response, result, id))
     }
 
@@ -110,11 +108,11 @@ open class Service(
      * @return The corresponding service response from ROS.
      */
     suspend fun callService(request: ServiceRequest): Pair<ServiceResponse?, Boolean> {
-        return suspendCoroutine { continuation ->
+        return TODO("implement in kmp") /*suspendCoroutine { continuation ->
             callService(request) { response, result, _ ->
                 continuation.resume(response to result)
             }
-        }
+        }*/
     }
 
 }
@@ -132,13 +130,13 @@ open class GenericService<In : ServiceRequest, Out : ServiceResponse>(
         return respCasted to result
     }
 
-    fun advertiseService(callback: (In?, String?) -> Unit) {
+    suspend fun advertiseService(callback: (In?, String?) -> Unit) {
         return super.advertiseServiceGeneric { m, id ->
             callback(m as In?, id)
         }
     }
 
-    fun sendResponse(response: Out?, result : Boolean = true, id: String? = null) {
+    suspend fun sendResponse(response: Out?, result : Boolean = true, id: String? = null) {
         super.sendResponseGeneric(response, result, id)
     }
 }

@@ -1,20 +1,23 @@
 package com.github.thoebert.krosbridge
 
 import com.github.thoebert.krosbridge.rosmessages.*
+import io.github.aakira.napier.Napier
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
+import io.ktor.utils.io.charsets.*
+import io.ktor.utils.io.core.*
+import io.ktor.utils.io.core.EOFException
+import io.ktor.utils.io.errors.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
-import org.slf4j.LoggerFactory
-import java.awt.image.Raster
-import java.io.ByteArrayInputStream
-import java.io.IOException
-import java.util.*
-import javax.imageio.ImageIO
+import org.jetbrains.skia.Bitmap
+import org.jetbrains.skia.Image
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.reflect.KClass
 
 /**
@@ -46,14 +49,14 @@ class Ros(
     private val serviceNames: MutableMap<String, Service> = HashMap()
 
 
-    private val logger = LoggerFactory.getLogger(Ros::class.java)
+    private val logger = Napier
 
 
     private val client = HttpClient {
         install(WebSockets)
     }
 
-    private var session : DefaultClientWebSocketSession? = null
+    private var session: DefaultClientWebSocketSession? = null
 
 
     /**
@@ -84,18 +87,18 @@ class Ros(
         val wsJob = Job()
         CoroutineScope(wsJob).launch {
             try {
-                logger.info("Connecting to ${this@Ros.uRL}")
+                logger.i("Connecting to ${this@Ros.uRL}")
                 this@Ros.session = client.webSocketSession(this@Ros.uRL)
                 for (message in this@Ros.session!!.incoming) {
                     message as? Frame.Text ?: continue
                     onMessage(message.readText())
                 }
-            } catch (e: java.io.EOFException) {
-                logger.debug("Handling EOFException in Websocket coroutine: ", e)
-            } catch (e: java.net.SocketException) {
-                logger.debug("Handling SocketException in Websocket coroutine: ", e)
-            } catch (e: IllegalArgumentException){
-                logger.debug("Handling IllegalArgumentException in Websocket coroutine: ", e)
+            } catch (e: EOFException) {
+                logger.d("Handling EOFException in Websocket coroutine: ", e)
+            } catch (e: WebSocketException) {
+                logger.d("Handling SocketException in Websocket coroutine: ", e)
+            } catch (e: IllegalArgumentException) {
+                logger.d("Handling IllegalArgumentException in Websocket coroutine: ", e)
             }
             wsJob.cancel()
         }
@@ -112,14 +115,14 @@ class Ros(
      */
     suspend fun disconnect(): Boolean {
         if (isConnected) {
-            logger.info("Disconnecting from ${this@Ros.uRL}")
+            logger.i("Disconnecting from ${this@Ros.uRL}")
             try {
                 client.close()
                 session?.let { it.close() }
                 session = null
                 return true
             } catch (e: IOException) {
-                logger.error("Could not disconnect", e)
+                logger.e("Could not disconnect", e)
             }
         }
         return false // could not disconnect cleanly
@@ -137,22 +140,22 @@ class Ros(
     val uRL: String
         get() = "$protocol://$hostname:$port"
 
-    fun topicByName(topicName : String) : Topic?{
+    fun topicByName(topicName: String): Topic? {
         val topic = topicNames[topicName]
-        return if (topic != null){
+        return if (topic != null) {
             topic
         } else {
-            logger.error("Invalid topic name $topicName")
+            logger.e("Invalid topic name $topicName")
             null
         }
     }
 
-    fun serviceByName(serviceName : String) : Service?{
+    fun serviceByName(serviceName: String): Service? {
         val service = serviceNames[serviceName]
-        return if (service != null){
+        return if (service != null) {
             service
         } else {
-            logger.error("Invalid service name $serviceName")
+            logger.e("Invalid service name $serviceName")
             null
         }
     }
@@ -160,7 +163,7 @@ class Ros(
 
     abstract class GuidedSerializer<T : Any>(baseClass: KClass<T>) : JsonContentPolymorphicSerializer<T>(baseClass) {
 
-        var serializer : DeserializationStrategy<out T>? = null
+        var serializer: DeserializationStrategy<out T>? = null
 
         override fun selectDeserializer(element: JsonElement): DeserializationStrategy<out T> {
             if (serializer == null) throw IllegalArgumentException("No valid serialization type existing")
@@ -172,27 +175,31 @@ class Ros(
     object ServiceResponseSerializer : GuidedSerializer<ServiceResponse>(ServiceResponse::class)
     object MessageSerializer : GuidedSerializer<Message>(Message::class)
 
-    private fun getField(content: JsonElement, field : String) : String?{
+    private fun getField(content: JsonElement, field: String): String? {
         return content.jsonObject[field]?.jsonPrimitive?.content
     }
 
     @OptIn(InternalSerializationApi::class)
-    override fun selectDeserializer(content: JsonElement) : KSerializer<out ROSMessage> {
-        val op = getField(content,"op")
-        when(op){
+    override fun selectDeserializer(content: JsonElement): KSerializer<out ROSMessage> {
+        val op = getField(content, "op")
+        when (op) {
             Publish.OPERATION -> {
                 getField(content, "topic")?.let { topicName ->
                     topicByName(topicName)?.let { MessageSerializer.serializer = it.clz.serializer() }
                 }
             }
+
             CallService.OPERATION -> {
                 getField(content, "service")?.let { serviceName ->
                     serviceByName(serviceName)?.let { ServiceRequestSerializer.serializer = it.requestClz.serializer() }
                 }
             }
+
             ResponseService.OPERATION -> {
                 getField(content, "service")?.let { serviceName ->
-                    serviceByName(serviceName)?.let { ServiceResponseSerializer.serializer = it.responseClz.serializer() }
+                    serviceByName(serviceName)?.let {
+                        ServiceResponseSerializer.serializer = it.responseClz.serializer()
+                    }
                 }
             }
         }
@@ -222,35 +229,50 @@ class Ros(
      * @param message
      * The incoming JSON message from rosbridge.
      */
+    @OptIn(ExperimentalEncodingApi::class)
     fun onMessage(message: String) {
         if (message.isEmpty()) return
         try {
-            logger.debug("Received message $message")
+            logger.d("Received message $message")
             val rosmsg = Json.decodeFromString(this, message)
 
-            // check for compression
-            if ((rosmsg is PNGCompression)) {
+            if (rosmsg is PNGCompression) {
                 val data: String = rosmsg.data
                 // decompress the PNG data
-                val bytes: ByteArray = Base64.getDecoder().decode(data.toByteArray())
-                val imageData: Raster = ImageIO.read(ByteArrayInputStream(bytes)).raster
-                // read the RGB data
-                var rawData: IntArray? = null
-                rawData = imageData.getPixels(0, 0, imageData.width, imageData.height, rawData)
-                val buffer: StringBuffer = StringBuffer()
-                for (i in rawData.indices) buffer.append(rawData[i].toChar().toString())
-                // reparse the JSON
-                val newJsonObject = Json.decodeFromString(this, buffer.toString())
-                handleMessage(newJsonObject)
+                // check for compression
+                val bytes: ByteArray = Base64.decode(data.toByteArray())
+                val image = Image.makeFromEncoded(bytes)
+                val bitmap = Bitmap.makeFromImage(image)
+                val rawData = bitmap.readPixels()
+                println(
+                    rawData?.toList()?.windowed(image.imageInfo.width, image.imageInfo.width)
+                        ?.map {
+                            it.filter { it.toInt() != -1 }.reversed()
+                                .joinToString("") { it.toInt().toChar().toString() }
+                        }?.joinToString(""),
+                )
+
+                if (rawData != null) {
+                    val buffer = StringBuilder()
+                    for (i in rawData.indices) buffer.append(rawData[i].toInt().toChar())
+                    val newJsonObject = Json.decodeFromString(
+                        this@Ros,
+                        rawData.toList().windowed(image.imageInfo.width, image.imageInfo.width).joinToString("") {
+                            it.filter { it.toInt() != -1 }.reversed()
+                                .joinToString("") { it.toInt().toChar().toString() }
+                        }
+                    )
+                    handleMessage(newJsonObject)
+                }
             } else {
                 handleMessage(rosmsg)
             }
         } catch (e: IOException) {
-            logger.error("Invalid incoming message $message", e)
-        } catch (e: IllegalArgumentException){
-            logger.info("Illegal argument for $message", e)
+            logger.e("Invalid incoming message $message", e)
+        } catch (e: IllegalArgumentException) {
+            logger.i("Illegal argument for $message", e)
         } catch (e: SerializationException) {
-            logger.error("Could not serialize message $message", e)
+            logger.e("Could not serialize message $message", e)
         }
     }
 
@@ -262,15 +284,18 @@ class Ros(
      * The ROSMessage from the incoming rosbridge message.
      */
     private fun handleMessage(rosmsg: ROSMessage) {
-        when (rosmsg){
+        when (rosmsg) {
             is Publish ->
                 topicByName(rosmsg.topic)?.let { it.receivedMessage(rosmsg.msg, rosmsg.id) }
+
             is ResponseService ->
                 serviceByName(rosmsg.service)?.let { it.receivedResponse(rosmsg.values, rosmsg.result, rosmsg.id) }
+
             is CallService ->
                 serviceByName(rosmsg.service)?.let { it.receivedRequest(rosmsg.args, rosmsg.id) }
+
             else ->
-                logger.error("Unrecognized op code: $rosmsg")
+                logger.e("Unrecognized op code: $rosmsg")
         }
     }
 
@@ -281,19 +306,19 @@ class Ros(
      * The JSON object to send to rosbridge.
      * @return If the sending of the message was successful.
      */
-    fun send(jsonString: String): Boolean = runBlocking {
+    suspend fun send(jsonString: String): Boolean {
         if (isConnected) { // check the connection
             try {
-                logger.debug("Sending message $jsonString")
+                logger.d("Sending message $jsonString")
                 session!!.send(jsonString)
-                return@runBlocking true
+                return true
             } catch (e: IOException) {
-                logger.error("Could not send message", e)
+                logger.e("Could not send message", e)
             }
         } else {
-            logger.error("Could not send message because of disconnection")
+            logger.e("Could not send message because of disconnection")
         }
-        return@runBlocking false // message send failed
+        return false // message send failed
     }
 
     /**
@@ -303,7 +328,7 @@ class Ros(
      * The ROSMessage object to send to rosbridge.
      * @return If the sending of the message was successful.
      */
-    fun send(rosmsg: ROSMessage): Boolean {
+    suspend fun send(rosmsg: ROSMessage): Boolean {
         return send(Json.encodeToString(this, rosmsg))
     }
 
@@ -326,7 +351,7 @@ class Ros(
      * @param end
      * The end time of the client's session.
      */
-    fun authenticate(
+    suspend fun authenticate(
         mac: String, client: String, dest: String,
         rand: String, t: Int, level: String, end: Int
     ) {

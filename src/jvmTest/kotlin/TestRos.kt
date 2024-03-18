@@ -2,6 +2,7 @@ import com.github.thoebert.krosbridge.Ros
 import io.ktor.util.reflect.*
 import jakarta.json.Json
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 
@@ -137,7 +138,7 @@ class TestRos {
     }
 
     @Test
-    fun testSendNoConnection() {
+    fun testSendNoConnection() = runTest {
         assertFalse(r1!!.send(Json.createObjectBuilder().build().toString()))
         assertFalse(r2!!.send(Json.createObjectBuilder().build().toString()))
         assertFalse(r3!!.send(Json.createObjectBuilder().build().toString()))

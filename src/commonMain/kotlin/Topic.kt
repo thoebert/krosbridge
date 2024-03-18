@@ -66,20 +66,20 @@ open class Topic(
      * The callback that will be called when incoming messages are
      * received.
      */
-    fun subscribeGeneric(handle : Any, callback: TopicSubscriber) : Boolean {
+    suspend fun subscribeGeneric(handle : Any, callback: TopicSubscriber) : Boolean {
         if (handle in subscribers) return false
         if (subscribers.isEmpty()) startSubscription()
         subscribers[handle] = callback
         return true
     }
 
-    private fun startSubscription(){
+    private suspend fun startSubscription(){
         ros.registerTopic(this)
         subscriptionID = "subscribe:" + name + ":" + ros.nextId()
         ros.send(Subscribe(name, subscriptionID, type, throttleRate, null, null, compression.toString()))
     }
 
-    private fun endSubscription(){
+    private suspend fun endSubscription(){
         ros.deregisterTopic(this)
         ros.send(Unsubscribe(name, subscriptionID))
         subscriptionID = null
@@ -89,7 +89,7 @@ open class Topic(
      * Unregisters as a subscriber for the topic. Unsubscribing will remove all
      * the associated subscribe callbacks.
      */
-    fun unsubscribe(handle : Any): Boolean {
+    suspend fun unsubscribe(handle : Any): Boolean {
         if (handle !in subscribers) return false
         this.subscribers.remove(handle)
         if (subscribers.isEmpty()) endSubscription()
@@ -104,7 +104,7 @@ open class Topic(
      * Registers as a publisher for the topic. This call will be automatically
      * called by publish if you do not explicitly call it.
      */
-    fun advertise() {
+    suspend fun advertise() {
         advertiseID = "advertise:" + name + ":" + ros.nextId()
         ros.send(Advertise(name, type, advertiseID))
     }
@@ -112,7 +112,7 @@ open class Topic(
     /**
      * Unregister as a publisher for the topic.
      */
-    fun unadvertise() {
+    suspend fun unadvertise() {
         ros.send(Unadvertise(name, advertiseID))
         advertiseID = null
     }
@@ -124,7 +124,7 @@ open class Topic(
      * @param message
      * The message to publish.
      */
-    fun publishGeneric(message: Message) {
+    suspend fun publishGeneric(message: Message) {
         if (!isAdvertised) advertise() // check if we have advertised yet.
         val publishId = "publish:" + name + ":" + ros.nextId()
         ros.send(Publish(name, message, publishId))
@@ -138,13 +138,13 @@ open class GenericTopic<M : Message>(
     override val clz: KClass<out Message>,
 ) : Topic(ros, name, type, clz){
 
-    fun subscribe(handle : Any, callback: (M, String?) -> Unit) : Boolean {
+    suspend fun subscribe(handle : Any, callback: (M, String?) -> Unit) : Boolean {
         return super.subscribeGeneric(handle) { m, id ->
             callback(m as M, id)
         }
     }
 
-    fun publish(message : M) {
+    suspend fun publish(message : M) {
         super.publishGeneric(message)
     }
 }
