@@ -1,11 +1,11 @@
-package com.github.thoebert.krosbridge
-
+import com.github.thoebert.krosbridge.Message
+import com.github.thoebert.krosbridge.Ros
+import com.github.thoebert.krosbridge.Topic
 import kotlinx.coroutines.*
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import kotlin.test.*
+
 
 @Serializable
 data class MyType1(val test1 : String) : Message()
@@ -18,8 +18,8 @@ class TestTopic {
     private lateinit var t3: Topic
     private lateinit var t4: Topic
     private lateinit var t5: Topic
-    @BeforeEach
-    fun setUp() = runBlocking {
+    @BeforeTest
+    fun setUp() = runTest {
         ros = Ros()
         server = DummyServer(ros.port)
         server.start()
@@ -41,8 +41,8 @@ class TestTopic {
         t5 = Topic(ros, "myTopic", "myType1", MyType1::class)
     }
 
-    @AfterEach
-    fun tearDown() = runBlocking {
+    @AfterTest
+    fun tearDown() = runTest {
         ros.disconnect()
         server.stop()
         DummyHandler.latest = null
@@ -93,7 +93,7 @@ class TestTopic {
     }
 
     @Test
-    fun testSubscribe() = runBlocking {
+    fun testSubscribe() = runTest {
         var latestMessage : Message? = null
         t1.subscribeGeneric (this) { msg, _ -> latestMessage = msg }
 
@@ -116,7 +116,7 @@ class TestTopic {
     }
 
     @Test
-    fun testUnsubscribe() = runBlocking {
+    fun testUnsubscribe() = runTest {
         var latestMessage : Message? = null
         t1.subscribeGeneric (this) { msg, _ -> latestMessage = msg }
         while (DummyHandler.latest == null) Thread.yield()
@@ -146,7 +146,7 @@ class TestTopic {
     }
 
     @Test
-    fun testUnsubscribeNoSubscribe() {
+    fun testUnsubscribeNoSubscribe() = runTest{
         t1.unsubscribe ("cb1")
         assertNull(DummyHandler.latest)
         assertFalse(t1.isAdvertised)
@@ -154,7 +154,7 @@ class TestTopic {
     }
 
     @Test
-    fun testAdvertise() {
+    fun testAdvertise() = runTest {
         t1.advertise()
         while (DummyHandler.latest == null) Thread.yield()
         assertNotNull(DummyHandler.latest)
@@ -167,7 +167,7 @@ class TestTopic {
     }
 
     @Test
-    fun testUnadvertise() {
+    fun testUnadvertise() = runTest {
         t1.advertise()
         while (DummyHandler.latest == null) Thread.yield()
         DummyHandler.latest = null
@@ -183,14 +183,14 @@ class TestTopic {
     }
     
     @Test
-    fun testImpl(){
+    fun testImpl() = runTest{
         val t1 = Topic(ros, "ServiceName", "MyType1", MyType1::class)
         t1.publishGeneric(MyType1("p1"))
     }
 
 
     @Test
-    fun testPublish() {
+    fun testPublish() = runTest{
         t1.advertise()
         while (DummyHandler.latest == null) Thread.yield()
         DummyHandler.latest = null
@@ -206,7 +206,7 @@ class TestTopic {
     }
 
     @Test
-    fun testOnMessagePngData() = runBlocking {
+    fun testOnMessagePngData() = runTest {
         assertTrue(ros.connect())
         var latestMessage : Message? = null
         t5.subscribeGeneric (this) { msg, _ -> latestMessage = msg }
@@ -228,7 +228,7 @@ class TestTopic {
 
 
     @Test
-    fun testOnMessageNoTopicCallbacks() = runBlocking {
+    fun testOnMessageNoTopicCallbacks() = runTest {
         assertTrue(ros.connect())
         ros.onMessage(
             "{\"" + JRosbridge.FIELD_OP + "\":\""
@@ -241,7 +241,7 @@ class TestTopic {
 
 
     @Test
-    fun testOnMessageMultiTopicCallbacks() = runBlocking {
+    fun testOnMessageMultiTopicCallbacks() = runTest {
         assertTrue(ros.connect())
         var latestMessage1 : Message? = null
         var latestMessage2 : Message? = null
@@ -266,7 +266,7 @@ class TestTopic {
 
 
     @Test
-    fun testDeregisterTopicCallback() = runBlocking {
+    fun testDeregisterTopicCallback() = runTest {
         assertTrue(ros.connect())
         var latestMessage1 : Message? = null
         var latestMessage2 : Message? = null
@@ -292,7 +292,7 @@ class TestTopic {
 
 
     @Test
-    fun testDeregisterTopicCallbackAll() = runBlocking {
+    fun testDeregisterTopicCallbackAll() = runTest {
         assertTrue(ros.connect())
         var latestMessage1 : Message? = null
         var latestMessage2 : Message? = null
@@ -320,7 +320,7 @@ class TestTopic {
 
 
     @Test
-    fun testDeregisterTopicCallbackInvalidTopic() = runBlocking {
+    fun testDeregisterTopicCallbackInvalidTopic() = runTest {
         assertTrue(ros.connect())
         var latestMessage1 : Message? = null
         var latestMessage2 : Message? = null

@@ -1,55 +1,125 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import com.github.thoebert.krosbridgecodegen.KROSBridgeCodegenPluginConfig
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 
 plugins {
-    kotlin("jvm") version "1.7.21"
-    kotlin("plugin.serialization") version "1.7.21"
-    id("io.github.thoebert.krosbridge-codegen") version "1.0.5"
+    alias(libs.plugins.kotlinMultiplatform)
+    //kotlin("jvm") version "1.9.0"
+    alias(libs.plugins.kotlinxSerialization)
+    alias(libs.plugins.androidLibrary)
+
+    id("io.github.thoebert.krosbridge-codegen") version "1.0.6"
     `maven-publish`
 }
 
 group = "com.github.thoebert"
 version = "1.0"
 
-repositories {
-    mavenCentral()
+val osName = System.getProperty("os.name")
+val hostOs = when {
+    osName == "Mac OS X" -> "macos"
+    osName.startsWith("Win") -> "windows"
+    osName.startsWith("Linux") -> "linux"
+    else -> error("Unsupported OS: $osName")
 }
 
-val ktor_version: String by project
-dependencies {
-    implementation("org.slf4j:slf4j-api:1.7.36")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
-    implementation("io.ktor:ktor-client-core:$ktor_version")
-    implementation("io.ktor:ktor-client-websockets:$ktor_version")
-    testImplementation("io.ktor:ktor-client-okhttp:$ktor_version")
-    testImplementation("org.glassfish:jakarta.json:2.0.1")
-    testImplementation("org.slf4j:jul-to-slf4j:1.7.36")
-    testImplementation("org.apache.logging.log4j:log4j-core:2.17.1")
-    testImplementation("org.apache.logging.log4j:log4j-slf4j-impl:2.17.1")
-    testImplementation("org.glassfish.tyrus:tyrus-server:1.17")
-    testImplementation("org.glassfish.tyrus:tyrus-container-grizzly-server:1.17")
-    testImplementation(kotlin("test"))
-    testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.4") // YAML Config
-    testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.1") // YAML Config
+val osArch = System.getProperty("os.arch")
+var hostArch = when (osArch) {
+    "x86_64", "amd64" -> "x64"
+    "aarch64" -> "arm64"
+    else -> error("Unsupported arch: $osArch")
 }
 
-tasks.test {
-    useJUnitPlatform()
+val host = "${hostOs}-${hostArch}"
+
+var skiaVersion = "0.0.0-SNAPSHOT"
+if (project.hasProperty("skiko.version")) {
+    skiaVersion = project.properties["skiko.version"] as String
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+kotlin {
+
+
+    jvm()
+    androidTarget {
+        publishLibraryVariants("release")
+        compilations.all {
+            kotlinOptions {
+                jvmTarget = "1.8"
+            }
+        }
+    }
+    //@OptIn(ExperimentalWasmDsl::class)
+    wasmJs()
+
+    sourceSets {
+
+        androidMain {
+            dependencies {
+                implementation(libs.ktor.client.okhttp)
+            }
+        }
+
+
+        jvmMain {
+            dependencies {
+                implementation(libs.ktor.client.okhttp)
+            }
+        }
+
+        jvmTest {
+
+            dependencies {
+                implementation(libs.jakarta.json)
+                implementation(libs.jul.to.slf4j)
+                implementation(libs.log4j.core)
+                implementation(libs.log4j.slf4j.impl)
+                implementation(libs.tyrus.server)
+                implementation(libs.tyrus.container.grizzly.server)
+                implementation(libs.jackson.dataformat.yaml) // YAML Config
+                implementation(libs.jackson.module.kotlin)
+                implementation("org.jetbrains.skiko:skiko-awt-runtime-$hostOs-$hostArch:$skiaVersion")
+
+            }
+        }
+
+        commonMain {
+            kotlin.srcDirs("${buildDir}/generated/source/ros")
+            dependencies {
+                implementation(libs.napier)
+                implementation("com.ashampoo:kim:0.15.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0-RC.2")
+                implementation(libs.ktor.client)
+                implementation(libs.ktor.client.logging)
+                implementation(libs.ktor.client.content.neogation)
+                implementation(libs.ktor.serialization.kotlinx.json)
+                implementation(libs.kotlinx.serialization.json)
+                implementation(libs.coroutines)
+                implementation("org.jetbrains.skiko:skiko:$skiaVersion")
+
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.coroutines.test)
+
+            }
+
+        }
+    }
+
+
 }
+
+
+// tasks.named("build") { dependsOn("generateROSSources") }
 
 
 configure<KROSBridgeCodegenPluginConfig> {
     packageName.set("com.github.thoebert.krosbridge.messages")
 }
 
-tasks.jar {
-    dependsOn("generateROSSources")
-}
+
 
 publishing {
     publications {
@@ -57,7 +127,15 @@ publishing {
             groupId = group.toString()
             artifactId = project.name
             version = version
-            from(components["java"])
+            // from(components["java"])
         }
+    }
+}
+
+android {
+    namespace = "com.github.thoebert.krosbridge"
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    defaultConfig {
+        minSdk = libs.versions.android.minSdk.get().toInt()
     }
 }

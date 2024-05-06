@@ -1,27 +1,30 @@
-package com.github.thoebert.krosbridge
-
+import com.github.thoebert.krosbridge.Ros
+import com.github.thoebert.krosbridge.Service
+import com.github.thoebert.krosbridge.ServiceRequest
+import com.github.thoebert.krosbridge.ServiceResponse
 import jakarta.json.Json
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junit.Assert.assertEquals
+
 import java.util.*
+import kotlin.test.*
 
 @Serializable
-data class MyTypeRequest(val test1 : String) : ServiceRequest()
+data class MyTypeRequest(val test1: String) : ServiceRequest()
 
 @Serializable
-data class MyTypeResponse(val test3 : String) : ServiceResponse()
+data class MyTypeResponse(val test3: String) : ServiceResponse()
 
 
 class TestService {
     private var ros: Ros? = null
     private var server: DummyServer? = null
     private var s1: Service? = null
-    @BeforeEach
-    fun setUp() = runBlocking {
+
+    @BeforeTest
+    fun setUp() = runTest {
         ros = Ros()
         server = DummyServer(ros!!.port)
         server!!.start()
@@ -29,8 +32,8 @@ class TestService {
         s1 = Service(ros!!, "myService", "myType", MyTypeRequest::class, MyTypeResponse::class)
     }
 
-    @AfterEach
-    fun tearDown() = runBlocking {
+    @AfterTest
+    fun tearDown() = runTest {
         ros!!.disconnect()
         server!!.stop()
         DummyHandler.latest = null
@@ -45,23 +48,27 @@ class TestService {
     }
 
     @Test
-    fun testCallService() {
-        var latestResponse : ServiceResponse? = null
+    fun testCallService() = runTest {
+        var latestResponse: ServiceResponse? = null
         val req = MyTypeRequest("test2")
         s1!!.callService(req) { res, _, _ -> latestResponse = res }
         while (DummyHandler.latest == null) Thread.yield()
         assertNotNull(DummyHandler.latest)
         assertEquals(5, DummyHandler.latest!!.size)
-        assertEquals(JRosbridge.OP_CODE_CALL_SERVICE,
+        assertEquals(
+            JRosbridge.OP_CODE_CALL_SERVICE,
             DummyHandler.latest!!.getString(JRosbridge.FIELD_OP)
         )
-        assertEquals("call_service:myService:0",
+        assertEquals(
+            "call_service:myService:0",
             DummyHandler.latest!!.getString(JRosbridge.FIELD_ID)
         )
-        assertEquals("myType",
+        assertEquals(
+            "myType",
             DummyHandler.latest!!.getString(JRosbridge.FIELD_TYPE)
         )
-        assertEquals("myService",
+        assertEquals(
+            "myService",
             DummyHandler.latest!!.getString(JRosbridge.FIELD_SERVICE)
         )
         assertEquals(
@@ -69,15 +76,16 @@ class TestService {
                 .getJsonObject(JRosbridge.FIELD_ARGS).toString()
         )
         val toSend =
-                Json.createObjectBuilder()
-                    .add(JRosbridge.FIELD_OP,JRosbridge.OP_CODE_SERVICE_RESPONSE)
-                    .add(JRosbridge.FIELD_SERVICE,"myService")
-                    .add(JRosbridge.FIELD_ID,"call_service:myService:0")
-                    .add(JRosbridge.FIELD_RESULT, false)
-                    .add(JRosbridge.FIELD_VALUES,
-                        Json.createObjectBuilder().add("test3", "test4").build()
-                    )
-                    .build().toString()
+            Json.createObjectBuilder()
+                .add(JRosbridge.FIELD_OP, JRosbridge.OP_CODE_SERVICE_RESPONSE)
+                .add(JRosbridge.FIELD_SERVICE, "myService")
+                .add(JRosbridge.FIELD_ID, "call_service:myService:0")
+                .add(JRosbridge.FIELD_RESULT, false)
+                .add(
+                    JRosbridge.FIELD_VALUES,
+                    Json.createObjectBuilder().add("test3", "test4").build()
+                )
+                .build().toString()
         ros!!.onMessage(toSend)
         while (latestResponse == null) Thread.yield()
         assertNotNull(latestResponse)
@@ -86,7 +94,7 @@ class TestService {
 
 
     @Test
-    fun testCallServiceAndWait() = runBlocking {
+    fun testCallServiceAndWait() = runTest {
         val req = MyTypeRequest("test2")
         val timer = Timer()
         timer.schedule(SendServiceResponse(ros), 300)
@@ -97,8 +105,8 @@ class TestService {
 
 
     @Test
-    fun testAdvertiseService() {
-        var latestRequest : ServiceRequest? = null
+    fun testAdvertiseService() = runTest {
+        var latestRequest: ServiceRequest? = null
         s1!!.advertiseServiceGeneric { req, _ -> latestRequest = req }
         assertNull(latestRequest)
         while (DummyHandler.latest == null) Thread.yield()
@@ -109,8 +117,9 @@ class TestService {
         )
         assertTrue(s1!!.isAdvertised)
     }
+
     @Test
-    fun testUnadvertiseService() {
+    fun testUnadvertiseService() = runTest {
         s1!!.unadvertiseService()
         while (DummyHandler.latest == null) Thread.yield()
         assertNotNull(DummyHandler.latest)
@@ -122,8 +131,8 @@ class TestService {
     }
 
     @Test
-    fun testSendResponse() {
-        val resp = MyTypeResponse ("test4")
+    fun testSendResponse() = runTest {
+        val resp = MyTypeResponse("test4")
         s1!!.sendResponseGeneric(resp, true, "myServiceId")
         while (DummyHandler.latest == null) Thread.yield()
         assertNotNull(DummyHandler.latest)
@@ -154,9 +163,9 @@ class TestService {
     }
 
     @Test
-    fun testOnMessageServiceCallback() {
-        var latestResponse : ServiceResponse? = null
-        var latestResult : Boolean = true
+    fun testOnMessageServiceCallback() = runTest {
+        var latestResponse: ServiceResponse? = null
+        var latestResult: Boolean = true
         val req = MyTypeRequest("test2")
         s1!!.callService(req) { res, r, _ ->
             latestResponse = res
@@ -179,9 +188,9 @@ class TestService {
 
 
     @Test
-    fun testOnMessageServiceCallbackNoResult() {
-        var latestResponse : ServiceResponse? = null
-        var latestResult : Boolean = false
+    fun testOnMessageServiceCallbackNoResult() = runTest {
+        var latestResponse: ServiceResponse? = null
+        var latestResult: Boolean = false
         val req = MyTypeRequest("test2")
         s1!!.callService(req) { res, r, _ ->
             latestResponse = res
@@ -204,16 +213,17 @@ class TestService {
     private inner class SendServiceResponse(private val ros: Ros?) : TimerTask() {
         override fun run() {
             val toSend =
-                    Json.createObjectBuilder()
-                        .add(JRosbridge.FIELD_OP, JRosbridge.OP_CODE_SERVICE_RESPONSE)
-                        .add(JRosbridge.FIELD_ID, "call_service:myService:0")
-                        .add(JRosbridge.FIELD_SERVICE, "myService")
-                        .add(JRosbridge.FIELD_RESULT, false)
-                        .add(JRosbridge.FIELD_VALUES, Json.createObjectBuilder()
-                                .add("test3", "test4")
-                                .build()
-                        ).build()
-                        .toString()
+                Json.createObjectBuilder()
+                    .add(JRosbridge.FIELD_OP, JRosbridge.OP_CODE_SERVICE_RESPONSE)
+                    .add(JRosbridge.FIELD_ID, "call_service:myService:0")
+                    .add(JRosbridge.FIELD_SERVICE, "myService")
+                    .add(JRosbridge.FIELD_RESULT, false)
+                    .add(
+                        JRosbridge.FIELD_VALUES, Json.createObjectBuilder()
+                            .add("test3", "test4")
+                            .build()
+                    ).build()
+                    .toString()
             ros!!.onMessage(toSend)
         }
     }
