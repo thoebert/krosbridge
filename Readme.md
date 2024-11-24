@@ -94,14 +94,14 @@ Add the following lines to your `build.gradle.kts` to
 2) add jitpack to your dependencies repository
 3) add the required and optional dependencies
 4) configure the code-generation package
-5) for android project: add source set for generated sources
+add source set for generated sources
 
 ```kotlin
 import com.github.thoebert.krosbridgecodegen.KROSBridgeCodegenPluginConfig
 
 plugins {
     kotlin("plugin.serialization") version "1.7.21" // 1)
-    id("io.github.thoebert.krosbridge-codegen") version "1.0.5"
+    id("io.github.thoebert.krosbridge-codegen") version "1.0.6"
 }
 
 ...
@@ -131,6 +131,12 @@ configure<KROSBridgeCodegenPluginConfig> { // 4)
 
 ...
 
+// only for kotlin
+kotlin.sourceSets {
+    named("main"){
+        kotlin.srcDir("build/generated/source/ros")
+    }
+}
 // only on android
 android.sourceSets {
     named("main") {

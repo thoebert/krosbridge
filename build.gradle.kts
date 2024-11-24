@@ -4,7 +4,7 @@ import com.github.thoebert.krosbridgecodegen.KROSBridgeCodegenPluginConfig
 plugins {
     kotlin("jvm") version "1.7.21"
     kotlin("plugin.serialization") version "1.7.21"
-    id("io.github.thoebert.krosbridge-codegen") version "1.0.5"
+    id("io.github.thoebert.krosbridge-codegen") version "1.0.6"
     `maven-publish`
 }
 
@@ -49,6 +49,12 @@ configure<KROSBridgeCodegenPluginConfig> {
 
 tasks.jar {
     dependsOn("generateROSSources")
+}
+
+kotlin.sourceSets {
+    named("main"){
+        kotlin.srcDir("build/generated/source/ros")
+    }
 }
 
 publishing {

@@ -1,6 +1,6 @@
 package com.github.thoebert.krosbridge
-import com.github.thoebert.krosbridge.messages.std_msgs.primitive.Time
-import com.github.thoebert.krosbridge.messages.std_msgs.primitive.Duration
+import com.github.thoebert.krosbridge.messages.primitive.Time
+import com.github.thoebert.krosbridge.messages.primitive.Duration
 import java.time.Instant
 
 fun Time.toInstant() : Instant {
